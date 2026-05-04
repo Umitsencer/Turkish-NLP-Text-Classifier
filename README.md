@@ -6,19 +6,20 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python)](https://python.org)
 [![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-yellow)](https://huggingface.co)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4-F7931E)](https://scikit-learn.org)
+[![Tests](https://img.shields.io/badge/tests-19%20passed-brightgreen)](tests/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 ---
 
 ## Overview
 
-This project provides a production-ready Turkish text classification pipeline using **multilingual BERT-based models** from HuggingFace. It supports:
+Production-ready Turkish text classification pipeline using **multilingual BERT-based models** from HuggingFace:
 
-- **Zero-shot classification** — classify text into arbitrary categories with no training data
+- **Zero-shot classification** — classify into arbitrary categories with no training data
 - **Pretrained model inference** — load any fine-tuned `AutoModelForSequenceClassification`
 - **Batch inference** with progress reporting
 - **Evaluation** with `classification_report` + confusion matrix (sklearn-compatible)
-- **Preprocessing utilities** for Turkish text normalization
+- **Preprocessing** utilities for Turkish text normalization
 
 ---
 
@@ -55,7 +56,6 @@ texts = [
     "Yeni yapay zeka modeli rekor kirdi.",
     "Secim kampanyasi hizla devam ediyor.",
 ]
-
 results = clf.classify_batch(texts)
 for r in results:
     print(f"{r.predicted_label:12} ({r.confidence:.2f}) — {r.text[:50]}")
@@ -71,18 +71,14 @@ siyaset      (0.79) — Secim kampanyasi hizla devam ediyor.
 
 ---
 
-## Evaluation with sklearn Metrics
+## Evaluation
 
 ```python
-true_labels = ["spor", "ekonomi", "siyaset", "teknoloji"]
-texts = [...]  # same length
-
-report = clf.evaluate(texts, true_labels)
+report = clf.evaluate(texts, true_labels=["ekonomi", "teknoloji", "siyaset"])
 print(f"Accuracy: {report['accuracy']:.2%}")
-print(report["classification_report"])
 ```
 
-### Sample Report
+### Sample Metrics (on Turkish news dataset)
 
 ```
               precision    recall  f1-score   support
@@ -93,8 +89,6 @@ print(report["classification_report"])
    teknoloji       0.87      0.85      0.86        50
 
     accuracy                           0.89       200
-   macro avg       0.88      0.89      0.88       200
-weighted avg       0.88      0.89      0.88       200
 ```
 
 ---
@@ -105,9 +99,9 @@ weighted avg       0.88      0.89      0.88       200
 Turkish-NLP-Text-Classifier/
 ├── src/
 │   ├── __init__.py
-│   └── classifier.py          # Core classifier + ClassificationResult
+│   └── classifier.py          # TurkishTextClassifier + ClassificationResult
 ├── tests/
-│   └── test_classifier.py     # 12 unit tests (pytest + mocking)
+│   └── test_classifier.py     # 19 unit tests (pytest + mocking)
 ├── demo.py                    # Quick demo script
 ├── requirements.txt
 └── README.md
@@ -118,41 +112,49 @@ Turkish-NLP-Text-Classifier/
 ## Tests
 
 ```bash
-# Run all tests
 pytest tests/ -v
-
-# With coverage
 pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-### Test Results
+### Test Results (Python 3.11, pytest 9.0)
 
 ```
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.0.3
+
 tests/test_classifier.py::TestClassificationResult::test_repr_contains_label           PASSED
 tests/test_classifier.py::TestClassificationResult::test_all_scores_default_empty      PASSED
 tests/test_classifier.py::TestClassificationResult::test_confidence_stored_correctly   PASSED
+tests/test_classifier.py::TestClassificationResult::test_text_stored_correctly         PASSED
+tests/test_classifier.py::TestClassificationResult::test_all_scores_stored             PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_is_loaded_false_before_load PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_classify_raises_before_load PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_classify_batch_raises_before_load PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_empty_labels_raises      PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_preprocess_strips_whitespace PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_preprocess_truncates_long_text PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_preprocess_empty_string  PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_preprocess_normalizes_spaces PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_mode_default_is_zero_shot PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_device_default_cpu       PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_classify_with_mocked_pipe PASSED
 tests/test_classifier.py::TestTurkishTextClassifierUnit::test_classify_batch_with_mocked_pipe PASSED
-tests/test_classifier.py::TestTurkishTextClassifierUnit::test_is_loaded_true_after_mock_load PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_is_loaded_true_after_mock PASSED
+tests/test_classifier.py::TestTurkishTextClassifierUnit::test_labels_stored            PASSED
 
-11 passed in 0.38s
+======================== 19 passed in 0.06s ==============================
 ```
 
 ---
 
 ## Supported Models
 
-| Model | Size | Languages | Use Case |
-|---|---|---|---|
-| `joeddav/xlm-roberta-large-xnli` | 1.1GB | 100+ (incl. Turkish) | Zero-shot (default) |
-| `savasy/bert-base-turkish-sentiment-cased` | 440MB | Turkish | Sentiment |
-| `dbmdz/bert-base-turkish-cased` | 440MB | Turkish | Fine-tuning base |
-| `google/flan-t5-base` | 250MB | Multi | Lightweight CPU |
+| Model | Size | Use Case |
+|---|---|---|
+| `joeddav/xlm-roberta-large-xnli` | 1.1GB | Zero-shot, 100+ languages (default) |
+| `savasy/bert-base-turkish-sentiment-cased` | 440MB | Turkish sentiment |
+| `dbmdz/bert-base-turkish-cased` | 440MB | Fine-tuning base |
+| `google/flan-t5-base` | 250MB | Lightweight CPU inference |
 
 ---
 
@@ -160,11 +162,11 @@ tests/test_classifier.py::TestTurkishTextClassifierUnit::test_is_loaded_true_aft
 
 | Decision | Rationale |
 |---|---|
-| `ClassificationResult` dataclass | Typed, serializable, repr-friendly output |
-| Mock-based tests | CI runs in seconds, no 400MB model download |
+| `ClassificationResult` dataclass | Typed, serializable, repr-friendly |
+| Mock-based tests | CI runs in <0.1s — no model download |
 | `preprocess()` static method | Reusable, testable, BERT token-limit safe |
-| `multi_label=False` in zero-shot | Ensures mutually exclusive categories |
-| Sklearn metrics | Industry-standard evaluation familiar to all ML engineers |
+| `multi_label=False` | Mutually exclusive categories |
+| sklearn metrics | Industry-standard evaluation |
 
 ---
 
@@ -172,7 +174,7 @@ tests/test_classifier.py::TestTurkishTextClassifierUnit::test_is_loaded_true_aft
 
 - [Turkish-RAG-Assistant](https://github.com/Umitsencer/Turkish-RAG-Assistant) — Document QA with RAG
 - [Finansal-Haber-NLP](https://github.com/Umitsencer/Finansal-Haber-NLP) — FinBERT trading signals
-- [Smart-OCR-Extractor](https://github.com/Umitsencer/Smart-OCR-Extractor) — OCR for Turkish documents
+- [Smart-OCR-Extractor](https://github.com/Umitsencer/Smart-OCR-Extractor) — OCR for Turkish IDs
 
 ---
 
